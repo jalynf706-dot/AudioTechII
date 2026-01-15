@@ -2,7 +2,7 @@
 
 ### Lectures: Jupyter notebooks
 All lesson materials are stored in Jupyter notebooks. The lectures are currently organized as follows (though subject to fairly frequent updating/modification):
-jjkfdd
+
 - [ ] Lesson 01a: Installing jupyter
 - [x] Lesson 01b: Jupyter Basics: Python preparation
 - [x] Lesson 02a: Intro Python Sound
