@@ -1,6 +1,8 @@
 import numpy as np
 from scipy.io.wavfile import read, write
 from scipy import signal
+from scipy.signal import square, sawtooth
+
 
 
 # TODO: Replace the code below with your implementation of the waveforms.
@@ -40,215 +42,174 @@ def gen_wave(type, freq, dur, fs=44100, amp=1, phi=0):
 # TODO: Replace the code below with your implementation of an ADSR
 # Hint: If you use %'s for your ADSR lengths, what length should the sustain value be
 # Note: How will you handle percentages that are too long? For example, attack is 50, decay is 50, release is 50?
-def adsr(data, attack, decay, sustain, release, fs=44100):
-    x = np.array(data, dtype=float)
-    n = x.size
-    if n == 0:
-        return x
+import numpy as np
 
-    # convert to floats safely
-    try: 
-        A = float(attack)
-    except:
-        A = 0.0
+def adsr(data, attack, decay, sustain_level, release, fs=44100):
     try:
-        D = float(decay)
+        attack + decay + sustain_level + release
     except:
-        D = 0.0
-    try:
-        R = float(release)
-    except:
-        R = 0.0
-    try:
-        S = float(sustain)
-    except:
-        S = 0.8
+        raise ValueError("ADSR parameters must be numeric.")
 
-    # keep sustain between 0–1
-    if S < 0: S = 0.0
-    if S > 1: S = 1.0
+    if sustain_level < 0 or sustain_level > 1:
+        raise ValueError("Sustain level must be between 0 and 1.")
 
-    # scale A + D + R if they exceed 100%
-    total = A + D + R
-    if total > 100 and total > 0:
+    N = len(data)
+    if N == 0:
+        return data
+
+    # scale if A + D + R exceed 100%
+    total = attack + decay + release
+    if total > 100:
         scale = 100.0 / total
-        A *= scale
-        D *= scale
-        R *= scale
+        attack *= scale
+        decay *= scale
+        release *= scale
 
-    # convert percentages to sample lengths
-    A_n = int((A / 100) * n)
-    D_n = int((D / 100) * n)
-    R_n = int((R / 100) * n)
-    S_n = n - (A_n + D_n + R_n)
+    # convert percent → sample counts
+    a_n = int((attack/100.0) * N)
+    d_n = int((decay/100.0) * N)
+    r_n = int((release/100.0) * N)
+    s_n = N - (a_n + d_n + r_n)
 
-    if S_n < 0:
-        S_n = 0
+    # fix negative sustain length
+    if s_n < 0:
+        s_n = 0
+        r_n = max(0, r_n)
+        d_n = max(0, d_n)
+        a_n = max(0, a_n)
 
-    # create envelope segments
-    if A_n > 0:
-        segA = np.linspace(0, 1, A_n, endpoint=False)
-    else:
-        segA = np.array([])
+    # build envelope
+    a = np.linspace(0, 1, a_n, endpoint=False)
+    d = np.linspace(1, sustain_level, d_n, endpoint=False)
+    s = np.full(s_n, sustain_level)
+    r = np.linspace(sustain_level, 0, r_n)
 
-    if D_n > 0:
-        segD = np.linspace(1, S, D_n, endpoint=False)
-    else:
-        segD = np.array([])
+    env = np.concatenate((a, d, s, r))
 
-    if S_n > 0:
-        segS = np.full(S_n, S)
-    else:
-        segS = np.array([])
+    # fix rounding mismatch
+    if len(env) != N:
+        env = env[:N]
 
-    # release starts at end of sustain or decay or attack
-    if S_n > 0:
-        start = S
-    elif D_n > 0:
-        start = segD[-1]
-    elif A_n > 0:
-        start = segA[-1]
-    else:
-        start = S
-
-    if R_n > 0:
-        segR = np.linspace(start, 0, R_n)
-    else:
-        segR = np.array([])
-
-    env = np.concatenate([segA, segD, segS, segR])
-
-    # fix mismatch caused by rounding
-    if env.size < n:
-        env = np.concatenate([env, np.full(n - env.size, env[-1])])
-    else:
-        env = env[:n]
-
-    return x * env
+    return data * env
 
 
 # TODO: Replace the code below with your implementation of a FM synthesis
 # Hint: You should really be doing PM.
+
 def fm_synth(carrier_type, carrier_freq, mod_index, mod_ratio, dur, fs=44100, amp=1, modulator_type='sine'):
-    try:
-        dur = float(dur)
-    except:
-        dur = 0.0
-    if dur <= 0:
-        return np.array([])
 
     try:
-        fc = float(carrier_freq)
+        carrier_freq + mod_index + mod_ratio + dur + fs + amp
     except:
-        fc = 0.0
+        raise ValueError("carrier_freq, mod_index, mod_ratio, dur, fs, and amp must be numeric.")
+
+    if fs <= 0 or dur <= 0 or carrier_freq < 0:
+        return np.array([], dtype=float)
+
+    # sanitize strings
     try:
-        I = float(mod_index)
+        carrier = carrier_type.lower()
     except:
-        I = 0.0
+        carrier = 'sine'
     try:
-        ratio = float(mod_ratio)
+        modulator = modulator_type.lower()
     except:
-        ratio = 1.0
-    try:
-        amp = float(amp)
-    except:
-        amp = 1.0
+        modulator = 'sine'
 
-    t = np.arange(0.0, dur, 1.0 / fs)
-    if t.size == 0:
-        return np.array([])
+    # core parameters
+    N = int(dur * fs)
+    if N <= 0:
+        return np.array([], dtype=float)
+    t = np.arange(N, dtype=float) / float(fs)
 
-    fm = fc * ratio
-
-    m = gen_wave(modulator_type, fm, dur, fs=fs, amp=1, phi=0)
-
-    # If gen_wave returned slightly different length due to rounding, trim/pad
-    if m.size < t.size:
-        m = np.concatenate([m, np.full(t.size - m.size, m[-1] if m.size > 0 else 0.0)])
+    # modulator
+    fm = carrier_freq * mod_ratio
+    arg_m = 2.0 * np.pi * fm * t
+    if modulator == 'square':
+        m = square(arg_m)
+    elif modulator in ('saw', 'sawtooth'):
+        m = sawtooth(arg_m)
+    elif modulator in ('tri', 'triangle'):
+        m = sawtooth(arg_m, 0.5)  # triangle
     else:
-        m = m[:t.size]
+        m = np.sin(arg_m)  # sine default
 
-    # --- Phase modulation: phase = 2π fc t + I * m(t) ---
-    phase = (2.0 * np.pi * fc * t + I * m)
+    # phase for PM
+    phase = 2.0 * np.pi * carrier_freq * t + (mod_index * m)
 
-    # --- Carrier shaping from phase (no scipy.signal, no np.sign) ---
-    if carrier_type == 'sine':
-        y = np.sin(phase)
-
-    elif carrier_type == 'square':
-        s_c = np.sin(phase)
-        y = (s_c >= 0).astype(float) * 2.0 - 1.0
-
-    elif carrier_type == 'saw':
-        frac_c = (phase / (2.0 * np.pi)) - np.floor(phase / (2.0 * np.pi))
-        y = 2.0 * frac_c - 1.0
-
-    elif carrier_type == 'triangle':
-        frac_c = (phase / (2.0 * np.pi)) - np.floor(phase / (2.0 * np.pi))
-        y = 1.0 - 4.0 * np.abs(frac_c - 0.5)
-
+    # carrier waveform
+    if carrier == 'square':
+        y = amp * square(phase)
+    elif carrier in ('saw', 'sawtooth'):
+        y = amp * sawtooth(phase)
+    elif carrier in ('tri', 'triangle'):
+        y = amp * sawtooth(phase, 0.5)  # triangle
     else:
-        y = np.sin(phase)
+        y = amp * np.sin(phase)  # sine default
 
-    sig = amp * y
-    return sig
+    return y
+
 
 # TODO: Replace the code below with your implementation of a AM synthesis
 def am_synth(carrier_type, carrier_freq, mod_depth, mod_ratio, dur, fs=44100, amp=1, modulator_type='sine'):
-    try:
-        dur = float(dur)
-    except:
-        dur = 0.0
-    if dur <= 0:
-        return np.array([])
 
     try:
-        fc = float(carrier_freq)
+        carrier_freq + mod_depth + mod_ratio + dur + fs + amp
     except:
-        fc = 0.0
+        raise ValueError("carrier_freq, mod_depth, mod_ratio, dur, fs, and amp must be numeric.")
+
+    if fs <= 0 or dur <= 0 or carrier_freq < 0:
+        return np.array([], dtype=float)
+
+    # sanitize type strings
     try:
-        depth = float(mod_depth)
+        carrier = carrier_type.lower()
     except:
-        depth = 0.0
-    if depth < 0.0:
-        depth = 0.0
-    if depth > 1.0:
-        depth = 1.0
-
+        carrier = 'sine'
     try:
-        ratio = float(mod_ratio)
+        modulator = modulator_type.lower()
     except:
-        ratio = 1.0
-    try:
-        amp = float(amp)
-    except:
-        amp = 1.0
+        modulator = 'sine'
 
-    t = np.arange(0.0, dur, 1.0 / fs)
-    if t.size == 0:
-        return np.array([])
+    # clamp modulation depth to [0, 1]
+    if mod_depth < 0:
+        mod_depth = 0.0
+    if mod_depth > 1:
+        mod_depth = 1.0
 
-    fm = fc * ratio
+    # core params
+    N = int(dur * fs)
+    if N <= 0:
+        return np.array([], dtype=float)
+    t = np.arange(N, dtype=float) / float(fs)
 
-    carrier = gen_wave(carrier_type, fc, dur, fs=fs, amp=amp, phi=0)
-    mod = gen_wave(modulator_type, fm, dur, fs=fs, amp=1, phi=0)
-
-    if carrier.size < t.size:
-        carrier = np.concatenate([carrier, np.full(t.size - carrier.size, carrier[-1] if carrier.size > 0 else 0.0)])
+    # modulator frequency and waveform (in [-1, 1])
+    fm = carrier_freq * mod_ratio
+    arg_m = 2.0 * np.pi * fm * t
+    if modulator == 'square':
+        m = square(arg_m)
+    elif modulator in ('saw', 'sawtooth'):
+        m = sawtooth(arg_m)
+    elif modulator in ('tri', 'triangle'):
+        m = sawtooth(arg_m, 0.5)  # triangle
     else:
-        carrier = carrier[:t.size]
+        m = np.sin(arg_m)
 
-    if mod.size < t.size:
-        mod = np.concatenate([mod, np.full(t.size - mod.size, mod[-1] if mod.size > 0 else 0.0)])
+    # amplitude envelope in [1 - mod_depth, 1]
+    env = (1.0 - mod_depth) + mod_depth * (m + 1.0) * 0.5
+
+    # carrier waveform
+    phase_c = 2.0 * np.pi * carrier_freq * t
+    if carrier == 'square':
+        c = square(phase_c)
+    elif carrier in ('saw', 'sawtooth'):
+        c = sawtooth(phase_c)
+    elif carrier in ('tri', 'triangle'):
+        c = sawtooth(phase_c, 0.5)  # triangle
     else:
-        mod = mod[:t.size]
+        c = np.sin(phase_c)
 
-    mod01 = 0.5 * (mod + 1.0)
-    env = (1.0 - depth) + depth * mod01
-
-    sig = carrier * env
-    return sig
-
+    return amp * env * c
 
 # TODO: Complete at least one of the functions below: filter, reverb, delay.
 
