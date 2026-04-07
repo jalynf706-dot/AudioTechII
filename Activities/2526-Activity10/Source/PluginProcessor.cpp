@@ -94,7 +94,19 @@ void _2526Activity10AudioProcessor::changeProgramName (int index, const juce::St
 void _2526Activity10AudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
     // You need to initialize your variables here!
-    
+
+    samplingRate = sampleRate;
+    samplesPerBlock = samplesPerBlock;
+
+    freq = 440;
+    amp = .5;
+    phase = 0;
+
+
+    // Envelope initialization
+    envSamples = envSec * samplingRate;
+    envTracker = 0;
+
 }
 
 void _2526Activity10AudioProcessor::releaseResources()
@@ -152,7 +164,25 @@ void _2526Activity10AudioProcessor::genSineWave(juce::AudioBuffer<float>& buffer
 {
     // Fill the buffer (in place) with a sinusoid
     // your code goes here!
-    
+
+    float phaseStart = phase;
+    int numSamples = buffer.getNumSamples();
+
+    for (int channel = 0; channel < buffer.getNumChannels(); ++channel)
+    {
+        auto* channelData = buffer.getWritePointer(channel);
+        phase = phaseStart;
+
+        for (int i = 0; i < numSamples; i++)
+        {
+            channelData[i] = sinf(phase);
+
+            phase += juce::MathConstants<float>::twoPi * freq / samplingRate;
+
+            if (phase >= juce::MathConstants<float>::twoPi)
+                phase -= juce::MathConstants<float>::twoPi;
+        }
+    }
 }
 
 
@@ -161,6 +191,38 @@ void _2526Activity10AudioProcessor::applyEnvRamp(juce::AudioBuffer<float>& buffe
     // Apply an amplitude envelope to the buffer (in place)
     // Multiply each sample by an envelope value (0 → 1 → 0)
     // your code goes here!
+
+
+    int numSamples = buffer.getNumSamples();
+
+    for (int i = 0; i < numSamples; i++)
+    {
+        float envVal;
+
+        if (envTracker < envSamples / 2)
+        {
+            // rising ramp
+            envVal = (float)envTracker / (envSamples / 2);
+        }
+        else
+        {
+            // falling ramp
+            envVal = 1.0f -
+                (float)(envTracker - envSamples / 2) / (envSamples / 2);
+        }
+
+        envVal *= amp;
+
+        for (int channel = 0; channel < buffer.getNumChannels(); channel++)
+        {
+            buffer.getWritePointer(channel)[i] *= envVal;
+        }
+
+        envTracker++;
+
+        if (envTracker >= envSamples)
+            envTracker = 0;
+    }
 }
 
 //==============================================================================
