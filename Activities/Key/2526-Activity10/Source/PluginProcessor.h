@@ -16,6 +16,8 @@
 class _2526Activity10AudioProcessor  : public juce::AudioProcessor
 {
 public:
+    juce::AudioProcessorValueTreeState apvts;
+    static juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
     //==============================================================================
     _2526Activity10AudioProcessor();
     ~_2526Activity10AudioProcessor() override;

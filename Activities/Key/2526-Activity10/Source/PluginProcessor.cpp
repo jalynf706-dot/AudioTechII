@@ -19,7 +19,8 @@ _2526Activity10AudioProcessor::_2526Activity10AudioProcessor()
                       #endif
                        .withOutput ("Output", juce::AudioChannelSet::stereo(), true)
                      #endif
-                       )
+                       ),
+       apvts (*this, nullptr, "PARAMS", createParameterLayout())
 #endif
 {
 }
@@ -89,6 +90,19 @@ const juce::String _2526Activity10AudioProcessor::getProgramName (int index)
 void _2526Activity10AudioProcessor::changeProgramName (int index, const juce::String& newName)
 {
 }
+juce::AudioProcessorValueTreeState::ParameterLayout
+_2526Activity10AudioProcessor::createParameterLayout()
+{
+    std::vector<std::unique_ptr<juce::RangedAudioParameter>> params;
+
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        "FREQ", "Frequency", 50.0f, 2000.0f, 440.0f));
+
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        "AMP", "Amplitude", 0.0f, 1.0f, 1.0f));
+
+    return { params.begin(), params.end() };
+}
 
 //==============================================================================
 void _2526Activity10AudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
@@ -145,10 +159,10 @@ bool _2526Activity10AudioProcessor::isBusesLayoutSupported (const BusesLayout& l
 }
 #endif
 
-void _2526Activity10AudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
+void _2526Activity10AudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
 {
     juce::ScopedNoDenormals noDenormals;
-    auto totalNumInputChannels  = getTotalNumInputChannels();
+    auto totalNumInputChannels = getTotalNumInputChannels();
     auto totalNumOutputChannels = getTotalNumOutputChannels();
 
     // In case we have more outputs than inputs, this code clears any output
@@ -158,13 +172,14 @@ void _2526Activity10AudioProcessor::processBlock (juce::AudioBuffer<float>& buff
     // when they first compile a plugin, but obviously you don't need to keep
     // this code if your algorithm always overwrites all the output channels.
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
-        buffer.clear (i, 0, buffer.getNumSamples());
+        buffer.clear(i, 0, buffer.getNumSamples());
+
+    freq = *apvts.getRawParameterValue("FREQ");
+    amp = *apvts.getRawParameterValue("AMP");
 
     genSineWave(buffer);
-//    applyEnvRamp(buffer);
     applyLFO(buffer);
 }
-
 void _2526Activity10AudioProcessor::genSineWave(juce::AudioBuffer<float>& buffer)
 {
     // Fill the buffer (in place) with a sinusoid

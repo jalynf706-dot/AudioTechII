@@ -29,5 +29,12 @@ private:
     // access the processor object that created it.
     _2526Activity10AudioProcessor& audioProcessor;
 
+    juce::Slider freqSlider;
+    juce::Slider ampSlider;
+
+    juce::AudioProcessorValueTreeState::SliderAttachment freqAttach;
+    juce::AudioProcessorValueTreeState::SliderAttachment ampAttach;
+
+
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (_2526Activity10AudioProcessorEditor)
 };
