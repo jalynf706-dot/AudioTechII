@@ -91,20 +91,26 @@ void _2526Activity10AudioProcessor::changeProgramName (int index, const juce::St
 }
 
 //==============================================================================
-void _2526Activity10AudioProcessor::prepareToPlay (double sampleRate, int numSamplesPerBlock)
+void _2526Activity10AudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
     // You need to initialize your variables here!
     samplingRate = sampleRate;
-    samplesPerBlock = numSamplesPerBlock;
+    numSamplesPerBlock = samplesPerBlock;
     
     freq = 440;
     amp = 1;
     phase = 0;
-    
-    // envelope length in samples
+        
+    // envelope length in samples;
     envSamples = samplingRate * int(envSec);
     
+    // envelope sample tracker;
     envTracker = 0;
+    
+    lfoFreq = 5;
+    lfoAmp = 0.5;
+    lfoPhase = 0;
+
 }
 
 void _2526Activity10AudioProcessor::releaseResources()
@@ -155,69 +161,76 @@ void _2526Activity10AudioProcessor::processBlock (juce::AudioBuffer<float>& buff
         buffer.clear (i, 0, buffer.getNumSamples());
 
     genSineWave(buffer);
-    applyEnvRamp(buffer);
+//    applyEnvRamp(buffer);
+    applyLFO(buffer);
 }
 
 void _2526Activity10AudioProcessor::genSineWave(juce::AudioBuffer<float>& buffer)
 {
     // Fill the buffer (in place) with a sinusoid
-    // your code goes here!
-    
     float phaseStart = phase;
-    for (int channel = 0; channel < buffer.getNumChannels(); ++channel) {
-        
-        auto* channelData = buffer.getWritePointer(channel);
+    for (int channel = 0; channel < buffer.getNumChannels(); ++channel)
+    {
         phase = phaseStart;
-        
-        for (int i = 0; i < samplesPerBlock; i++) {
+        auto* channelData = buffer.getWritePointer (channel);
+        for (int i = 0; i < numSamplesPerBlock; i++)
+        {
             channelData[i] = amp * sinf(phase);
-            
             phase += juce::MathConstants<float>::twoPi * freq / samplingRate;
-            
-            if (phase >= juce::MathConstants<float>::twoPi){
+            if (phase >= juce::MathConstants<float>::twoPi)
+            {
                 phase -= juce::MathConstants<float>::twoPi;
             }
-            
         }
     }
-    
 }
-
 
 void _2526Activity10AudioProcessor::applyEnvRamp(juce::AudioBuffer<float>& buffer)
 {
     // Apply an amplitude envelope to the buffer (in place)
     // Multiply each sample by an envelope value (0 → 1 → 0)
-    // your code goes here!
-    
     int envStart = envTracker;
     float envVal;
     float halfEnvLen = float(envSamples) / 2;
     
-    for (int channel = 0; channel < buffer.getNumChannels(); ++channel) {
-        auto* channelData = buffer.getWritePointer(channel);
+    for (int channel = 0; channel < buffer.getNumChannels(); ++channel)
+    {
         envTracker = envStart;
-        
-        for (int i = 0; i < samplesPerBlock; i++) {
-            
-            if (envTracker < halfEnvLen) {
+        auto* channelData = buffer.getWritePointer(channel);
+
+        for (int i = 0; i < numSamplesPerBlock; i++)
+        {
+
+            if (envTracker < envSamples / 2)
                 envVal = envTracker / halfEnvLen;
-            }
-            else {
-                envVal = 1 - (envTracker - halfEnvLen) / halfEnvLen;
-            }
-            
+            else
+                envVal = 1.0f - (envTracker - halfEnvLen) / halfEnvLen;
+
             channelData[i] *= envVal;
-            
+
             envTracker++;
-            
-            if (envTracker >= envSamples) {
+            if (envTracker >= envSamples)
                 envTracker = 0;
+        }
+    }
+}
+
+void _2526Activity10AudioProcessor::applyLFO(juce::AudioBuffer<float>& buffer) {
+    float phaseStart = lfoPhase;
+    for (int channel = 0; channel < buffer.getNumChannels(); ++channel)
+    {
+        lfoPhase = phaseStart;
+        auto* channelData = buffer.getWritePointer (channel);
+        for (int i = 0; i < numSamplesPerBlock; i++)
+        {
+            channelData[i] *= lfoAmp * sinf(lfoPhase);
+            lfoPhase += juce::MathConstants<float>::twoPi * lfoFreq / samplingRate;
+            if (lfoPhase >= juce::MathConstants<float>::twoPi)
+            {
+                lfoPhase -= juce::MathConstants<float>::twoPi;
             }
         }
-        
     }
-    
 }
 
 //==============================================================================
