@@ -19,7 +19,8 @@ _2526Activity12AudioProcessor::_2526Activity12AudioProcessor()
                       #endif
                        .withOutput ("Output", juce::AudioChannelSet::stereo(), true)
                      #endif
-                       )
+                       ),
+    apvts(*this, nullptr, "PARAMS", createParams())
 #endif
 {
 }
@@ -91,11 +92,19 @@ void _2526Activity12AudioProcessor::changeProgramName (int index, const juce::St
 }
 
 //==============================================================================
-void _2526Activity12AudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
+void _2526Activity12AudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
 {
-    // initialize your variables here!
-    
-    
+    samplingRate = sampleRate;
+    bufferSize = samplesPerBlock;
+
+    // max delay buffer (in samples)
+    delayBufferSize = maxDelayLength * samplingRate;
+
+    int numChannels = getTotalNumOutputChannels();
+    delayBuffer.setSize(numChannels, delayBufferSize);
+    delayBuffer.clear();
+
+    writeTail = 0;
 }
 
 void _2526Activity12AudioProcessor::releaseResources()
@@ -148,9 +157,61 @@ void _2526Activity12AudioProcessor::processBlock (juce::AudioBuffer<float>& buff
     delay(buffer);
 }
 
-void _2526Activity12AudioProcessor::delay(juce::AudioBuffer<float> &buffer)
+void _2526Activity12AudioProcessor::delay(juce::AudioBuffer<float>& buffer)
 {
-    // add your delay implementation here!
+    auto totalNumInputChannels = getTotalNumInputChannels();
+
+    // delay time (seconds) from generic GUI
+    float delayTimeSeconds = *apvts.getRawParameterValue("delayTime");
+    int delayInSamples = delayTimeSeconds * samplingRate;
+
+    for (int channel = 0; channel < totalNumInputChannels; ++channel)
+    {
+        auto* channelData = buffer.getWritePointer(channel);
+        auto* delayData = delayBuffer.getWritePointer(channel);
+
+        int localWrite = writeTail;
+
+        for (int i = 0; i < bufferSize; ++i)
+        {
+            float input = channelData[i];
+
+            int readIndex = localWrite - delayInSamples;
+            if (readIndex < 0)
+                readIndex += delayBufferSize;
+
+            float delayed = delayData[readIndex];
+
+            // static dry / wet mix
+            float output = 0.5f * input + 0.5f * delayed;
+
+            channelData[i] = output;
+
+            // write input into delay buffer
+            delayData[localWrite] = input;
+
+            localWrite++;
+            if (localWrite >= delayBufferSize)
+                localWrite = 0;
+        }
+    }
+
+    writeTail += bufferSize;
+    writeTail %= delayBufferSize;
+}
+juce::AudioProcessorValueTreeState::ParameterLayout
+_2526Activity12AudioProcessor::createParams()
+{
+    std::vector<std::unique_ptr<juce::RangedAudioParameter>> params;
+
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        "delayTime",          // parameter ID (used in delay())
+        "Delay Time",         // GUI label
+        0.01f,                // min seconds
+        maxDelayLength,       // max seconds
+        0.5f));               // default (0.5 sec)
+
+    return { params.begin(), params.end() };
 }
 
 //==============================================================================
