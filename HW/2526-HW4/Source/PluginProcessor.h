@@ -9,17 +9,17 @@
 #pragma once
 
 #include <JuceHeader.h>
-#include <Delay.h>
+#include "Delay.h"
 
 //==============================================================================
 /**
 */
-class AudioTech2Lecture7AudioProcessor  : public juce::AudioProcessor
+class _2526HW4AudioProcessor  : public juce::AudioProcessor
 {
 public:
     //==============================================================================
-    AudioTech2Lecture7AudioProcessor();
-    ~AudioTech2Lecture7AudioProcessor() override;
+    _2526HW4AudioProcessor();
+    ~_2526HW4AudioProcessor() override;
 
     //==============================================================================
     void prepareToPlay (double sampleRate, int samplesPerBlock) override;
@@ -55,19 +55,11 @@ public:
     void setStateInformation (const void* data, int sizeInBytes) override;
 
 
-    juce::AudioProcessorValueTreeState apvts;
-
-
 private:
     //==============================================================================
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(AudioTech2Lecture7AudioProcessor)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (_2526HW4AudioProcessor)
 
     Delay delay;
-
-    double samplingRate;
-    int bufferSize;
-
     const int maxDelaySec = 5;
-
-    juce::AudioProcessorValueTreeState::ParameterLayout createParams();
+    
 };
