@@ -12,16 +12,41 @@
 //==============================================================================
 _2526HW4AudioProcessor::_2526HW4AudioProcessor()
 #ifndef JucePlugin_PreferredChannelConfigurations
-     : AudioProcessor (BusesProperties()
-                     #if ! JucePlugin_IsMidiEffect
-                      #if ! JucePlugin_IsSynth
-                       .withInput  ("Input",  juce::AudioChannelSet::stereo(), true)
-                      #endif
-                       .withOutput ("Output", juce::AudioChannelSet::stereo(), true)
+    : AudioProcessor (BusesProperties()
+                    #if ! JucePlugin_IsMidiEffect
+                     #if ! JucePlugin_IsSynth
+                      .withInput  ("Input",  juce::AudioChannelSet::stereo(), true)
                      #endif
-                       )
+                      .withOutput ("Output", juce::AudioChannelSet::stereo(), true)
+                    #endif
+                      ),
+      parameters (*this, nullptr, "PARAMETERS",
+      {
+          std::make_unique<juce::AudioParameterFloat>(
+              "delayTime",
+              "Delay Time",
+              juce::NormalisableRange<float>(0.01f, (float)maxDelaySec),
+              0.5f),
+
+          std::make_unique<juce::AudioParameterFloat>(
+              "wetMix",
+              "Wet Mix",
+              0.0f,
+              1.0f,
+              0.5f),
+
+          std::make_unique<juce::AudioParameterFloat>(
+              "feedback",
+              "Feedback",
+              0.0f,
+              0.95f,
+              0.2f)
+      })
 #endif
 {
+    delayTimeParam = (juce::AudioParameterFloat*) parameters.getParameter("delayTime");
+    wetMixParam    = (juce::AudioParameterFloat*) parameters.getParameter("wetMix");
+    feedbackParam  = (juce::AudioParameterFloat*) parameters.getParameter("feedback");
 }
 
 _2526HW4AudioProcessor::~_2526HW4AudioProcessor()
@@ -94,6 +119,14 @@ void _2526HW4AudioProcessor::changeProgramName (int index, const juce::String& n
 void _2526HW4AudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
     // call your initializing functions and set variables here!
+
+    int maxDelaySamples = (int)(maxDelaySec * sampleRate);
+    delay.prepare(sampleRate, maxDelaySamples, getTotalNumInputChannels());
+
+    float frequency = 440.0f;
+    phaseIncrement = juce::MathConstants<float>::twoPi * frequency / (float)sampleRate;
+
+
 }
 
 void _2526HW4AudioProcessor::releaseResources()
@@ -135,6 +168,9 @@ void _2526HW4AudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juc
     auto totalNumOutputChannels = getTotalNumOutputChannels();
     
     int numSamples = buffer.getNumSamples();
+    delay.setDelayTime(delayTimeParam->get());
+    delay.setWetMix(wetMixParam->get());
+    delay.setFeedbackAmt(feedbackParam->get());
 
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
         buffer.clear (i, 0, numSamples);
@@ -143,10 +179,22 @@ void _2526HW4AudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juc
     {
         auto* channelData = buffer.getWritePointer (channel);
 
+        // ---- TEST AUDIO GENERATION (float only) ----
+        for (int i = 0; i < numSamples; ++i)
+        {
+            channelData[i] = std::sin(phase) * 0.25f;
+
+            phase += phaseIncrement;
+            if (phase >= juce::MathConstants<float>::twoPi)
+                phase -= juce::MathConstants<float>::twoPi;
+        }
+
+
         for (int i = 0; i < numSamples; ++i)
         {
             // your delay function is called below. Do not change
             channelData[i] = delay.processSample(channelData[i], channel);
+
         }
     }
 }

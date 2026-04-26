@@ -61,5 +61,12 @@ private:
 
     Delay delay;
     const int maxDelaySec = 5;
-    
+
+    float phase = 0.0f;
+    float phaseIncrement = 0.0f;
+
+    juce::AudioProcessorValueTreeState parameters;
+    juce::AudioParameterFloat* delayTimeParam = nullptr;
+    juce::AudioParameterFloat* wetMixParam = nullptr;
+    juce::AudioParameterFloat* feedbackParam = nullptr;
 };
