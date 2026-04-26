@@ -25,6 +25,13 @@ void Delay::prepare(double samplingRate, int maxDelay, int numChannels)
 
     smoothedDelay.reset(sampleRate, 0.05f);
     smoothedDelay.setCurrentAndTargetValue(0.0f);
+
+    smoothedMix.reset(sampleRate, 0.05f);
+    smoothedMix.setCurrentAndTargetValue(mix);
+
+    smoothedFeedback.reset(sampleRate, 0.05f);
+    smoothedFeedback.setCurrentAndTargetValue(feedback);
+
 }
 
 void Delay::setMaxDelayInSamples(int maxDelay)
@@ -50,18 +57,23 @@ void Delay::setDelayTime(float delaySecondsIn)
 void Delay::setWetMix(float wetAmount)
 {
     mix = juce::jlimit(0.0f, 1.0f, wetAmount);
+    smoothedMix.setTargetValue(mix);
 }
 
 void Delay::setFeedbackAmt(float feedbackAmt)
 {
     feedback = juce::jlimit(0.0f, 0.95f, feedbackAmt);
+    smoothedFeedback.setTargetValue(feedback);
 }
+
 
 // this is called in the ProcessBlock as we iterate over each channel's buffer
 float Delay::processSample(float inputSample, int channel)
 {
     int writeIndex = writeHeads[channel];
-    int delaySamples = (int)smoothedDelay.getNextValue();
+    int delaySamples = smoothedDelay.getNextValue();
+    float currentMix = smoothedMix.getNextValue();
+    float currentFeedback = smoothedFeedback.getNextValue();
     int readIndex = writeIndex - delaySamples;
 
     if (readIndex < 0)
@@ -69,12 +81,12 @@ float Delay::processSample(float inputSample, int channel)
 
     float delayedSample = delayBuffer.getSample(channel, readIndex);
 
-    float bufferInput = inputSample + delayedSample * feedback;
+    float bufferInput = inputSample + delayedSample * currentFeedback;
     delayBuffer.setSample(channel, writeIndex, bufferInput);
 
     writeHeads[channel]++;
     if (writeHeads[channel] >= delayBufferSize)
         writeHeads[channel] = 0;
 
-    return inputSample * (1.0f - mix) + delayedSample * mix;
+    return inputSample * (1.0f - currentMix) + delayedSample * currentMix;
 }
