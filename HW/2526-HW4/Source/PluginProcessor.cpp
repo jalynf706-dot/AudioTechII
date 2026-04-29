@@ -20,7 +20,7 @@ _2526HW4AudioProcessor::_2526HW4AudioProcessor()
                       .withOutput ("Output", juce::AudioChannelSet::stereo(), true)
                     #endif
                       ),
-      parameters (*this, nullptr, "PARAMETERS",
+        apvts(*this, nullptr, "APTVS",
       {
           std::make_unique<juce::AudioParameterFloat>(
               "delayTime",
@@ -44,9 +44,9 @@ _2526HW4AudioProcessor::_2526HW4AudioProcessor()
       })
 #endif
 {
-    delayTimeParam = (juce::AudioParameterFloat*) parameters.getParameter("delayTime");
-    wetMixParam    = (juce::AudioParameterFloat*) parameters.getParameter("wetMix");
-    feedbackParam  = (juce::AudioParameterFloat*) parameters.getParameter("feedback");
+    delayTimeParam = (juce::AudioParameterFloat*) apvts.getParameter("delayTime");
+    wetMixParam    = (juce::AudioParameterFloat*) apvts.getParameter("wetMix");
+    feedbackParam  = (juce::AudioParameterFloat*) apvts.getParameter("feedback");
 }
 
 _2526HW4AudioProcessor::~_2526HW4AudioProcessor()
@@ -171,13 +171,13 @@ void _2526HW4AudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juc
 
     // get params
 
-    auto* delayParam = parameters.getRawParameterValue("delay");
+    auto* delayParam = apvts.getRawParameterValue("delay");
     auto delayLengthSec = delayParam->load();
 
-    auto* mixParam = parameters.getRawParameterValue("mix");
+    auto* mixParam = apvts.getRawParameterValue("mix");
     auto mix = mixParam->load();
 
-    auto* feedbackParam = parameters.getRawParameterValue("feedback");
+    auto* feedbackParam = apvts.getRawParameterValue("feedback");
     auto feedback = feedbackParam->load();
 
     // send params to delay

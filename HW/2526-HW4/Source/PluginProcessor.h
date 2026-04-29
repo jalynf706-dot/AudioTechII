@@ -65,7 +65,7 @@ private:
     float phase = 0.0f;
     float phaseIncrement = 0.0f;
 
-    juce::AudioProcessorValueTreeState parameters;
+    juce::AudioProcessorValueTreeState apvts;
     juce::AudioParameterFloat* delayTimeParam = nullptr;
     juce::AudioParameterFloat* wetMixParam = nullptr;
     juce::AudioParameterFloat* feedbackParam = nullptr;
