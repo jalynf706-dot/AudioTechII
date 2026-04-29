@@ -168,9 +168,23 @@ void _2526HW4AudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juc
     auto totalNumOutputChannels = getTotalNumOutputChannels();
     
     int numSamples = buffer.getNumSamples();
-    delay.setDelayTime(delayTimeParam->get());
-    delay.setWetMix(wetMixParam->get());
-    delay.setFeedbackAmt(feedbackParam->get());
+
+    // get params
+
+    auto* delayParam = parameters.getRawParameterValue("delay");
+    auto delayLengthSec = delayParam->load();
+
+    auto* mixParam = parameters.getRawParameterValue("mix");
+    auto mix = mixParam->load();
+
+    auto* feedbackParam = parameters.getRawParameterValue("feedback");
+    auto feedback = feedbackParam->load();
+
+    // send params to delay
+
+    delay.setDelayTime(delayLengthSec);
+    delay.setWetMix(mix);
+    delay.setFeedbackAmt(feedback);;
 
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
         buffer.clear (i, 0, numSamples);
@@ -179,7 +193,10 @@ void _2526HW4AudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juc
     {
         auto* channelData = buffer.getWritePointer (channel);
 
-        // ---- TEST AUDIO GENERATION (float only) ----
+        // ---- TEST AUDIO GENERATION ----
+//I used AI generation to create this test Audio for the Delay. I wanted to make sure it was working, and I was not sure how to 
+        //get it working with the input, and I could not figure out how to use/download the plugin from class. 
+        // I asked AI to create a Sine wave at 440Hz, for testing with a delay, and attached it below
         for (int i = 0; i < numSamples; ++i)
         {
             channelData[i] = std::sin(phase) * 0.25f;

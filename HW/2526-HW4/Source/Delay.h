@@ -43,7 +43,7 @@ private:
     int maxDelayInSamples = 0;
     int delayBufferSize = 0;
 
-    double sampleRate;
+    float sampleRate;
     float mix = 0.5;
     float feedback = 0.2;
     

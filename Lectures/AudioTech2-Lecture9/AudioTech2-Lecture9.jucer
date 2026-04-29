@@ -40,19 +40,19 @@
         <CONFIGURATION isDebug="0" name="Release" targetName="AudioTech2-Lecture9"/>
       </CONFIGURATIONS>
       <MODULEPATHS>
-        <MODULEPATH id="juce_audio_basics" path="../AudioTech2-2026-main/JUCE/modules"/>
-        <MODULEPATH id="juce_audio_devices" path="../AudioTech2-2026-main/JUCE/modules"/>
-        <MODULEPATH id="juce_audio_formats" path="../AudioTech2-2026-main/JUCE/modules"/>
-        <MODULEPATH id="juce_audio_plugin_client" path="../AudioTech2-2026-main/JUCE/modules"/>
-        <MODULEPATH id="juce_audio_processors" path="../AudioTech2-2026-main/JUCE/modules"/>
-        <MODULEPATH id="juce_audio_processors_headless" path="../AudioTech2-2026-main/JUCE/modules"/>
-        <MODULEPATH id="juce_audio_utils" path="../AudioTech2-2026-main/JUCE/modules"/>
-        <MODULEPATH id="juce_core" path="../AudioTech2-2026-main/JUCE/modules"/>
-        <MODULEPATH id="juce_data_structures" path="../AudioTech2-2026-main/JUCE/modules"/>
-        <MODULEPATH id="juce_events" path="../AudioTech2-2026-main/JUCE/modules"/>
-        <MODULEPATH id="juce_graphics" path="../AudioTech2-2026-main/JUCE/modules"/>
-        <MODULEPATH id="juce_gui_basics" path="../AudioTech2-2026-main/JUCE/modules"/>
-        <MODULEPATH id="juce_gui_extra" path="../AudioTech2-2026-main/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_basics" path="..\..\..\..\Desktop\JUCE\modules"/>
+        <MODULEPATH id="juce_audio_devices" path="..\..\..\..\Desktop\JUCE\modules"/>
+        <MODULEPATH id="juce_audio_formats" path="..\..\..\..\Desktop\JUCE\modules"/>
+        <MODULEPATH id="juce_audio_plugin_client" path="..\..\..\..\Desktop\JUCE\modules"/>
+        <MODULEPATH id="juce_audio_processors" path="..\..\..\..\Desktop\JUCE\modules"/>
+        <MODULEPATH id="juce_audio_processors_headless" path="..\..\..\..\Desktop\JUCE\modules"/>
+        <MODULEPATH id="juce_audio_utils" path="..\..\..\..\Desktop\JUCE\modules"/>
+        <MODULEPATH id="juce_core" path="..\..\..\..\Desktop\JUCE\modules"/>
+        <MODULEPATH id="juce_data_structures" path="..\..\..\..\Desktop\JUCE\modules"/>
+        <MODULEPATH id="juce_events" path="..\..\..\..\Desktop\JUCE\modules"/>
+        <MODULEPATH id="juce_graphics" path="..\..\..\..\Desktop\JUCE\modules"/>
+        <MODULEPATH id="juce_gui_basics" path="..\..\..\..\Desktop\JUCE\modules"/>
+        <MODULEPATH id="juce_gui_extra" path="..\..\..\..\Desktop\JUCE\modules"/>
       </MODULEPATHS>
     </VS2026>
     <XCODE_MAC targetFolder="Builds/MacOSX">
