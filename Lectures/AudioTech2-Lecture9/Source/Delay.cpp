@@ -91,23 +91,19 @@ float Delay::processSample(float inputSample, int channel)
 
     modDelay = std::clamp<float>(modDelay, 0.001f, (delayBufferSize / sampleRate));
 
-    //delaySamples = int (modDelay * sampleRate);
-
-    //int readTail = (writeHead - delaySamples + delayBufferSize) % delayBufferSize;
-
-    //float delayed = delayData[readTail];
-
     float delaySamples = modDelay * sampleRate;
 
     float delayed = interpRead(delayData, writeHead, delaySamples);
 
     //delayData[writeHead] = inputSample;
 
+    DBG(delayed);
+
     // with feedback
     delayData[writeHead] = inputSample + (feedback * delayed);
 
     // update output as mixed signal
-    
+
     delayed = ((1.0 - mix) * inputSample) + (mix * delayed);
 
     writeHead = (writeHead + 1) % delayBufferSize;
