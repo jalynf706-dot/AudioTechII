@@ -10,43 +10,36 @@
 #include "PluginEditor.h"
 
 //==============================================================================
+
 _2526HW4AudioProcessor::_2526HW4AudioProcessor()
 #ifndef JucePlugin_PreferredChannelConfigurations
-    : AudioProcessor (BusesProperties()
-                    #if ! JucePlugin_IsMidiEffect
-                     #if ! JucePlugin_IsSynth
-                      .withInput  ("Input",  juce::AudioChannelSet::stereo(), true)
-                     #endif
-                      .withOutput ("Output", juce::AudioChannelSet::stereo(), true)
-                    #endif
-                      ),
-        apvts(*this, nullptr, "APTVS",
-      {
-          std::make_unique<juce::AudioParameterFloat>(
-              "delayTime",
-              "Delay Time",
-              juce::NormalisableRange<float>(0.01f, (float)maxDelaySec),
-              0.5f),
-
-          std::make_unique<juce::AudioParameterFloat>(
-              "wetMix",
-              "Wet Mix",
-              0.0f,
-              1.0f,
-              0.5f),
-
-          std::make_unique<juce::AudioParameterFloat>(
-              "feedback",
-              "Feedback",
-              0.0f,
-              0.95f,
-              0.2f)
-      })
+    : AudioProcessor(BusesProperties()
+#if ! JucePlugin_IsMidiEffect
+#if ! JucePlugin_IsSynth
+        .withInput("Input", juce::AudioChannelSet::stereo(), true)
 #endif
+        .withOutput("Output", juce::AudioChannelSet::stereo(), true)
+#endif
+    ),
+#endif
+    apvts(*this, nullptr, "Parameters", createParams())
 {
-    delayTimeParam = (juce::AudioParameterFloat*) apvts.getParameter("delayTime");
-    wetMixParam    = (juce::AudioParameterFloat*) apvts.getParameter("wetMix");
-    feedbackParam  = (juce::AudioParameterFloat*) apvts.getParameter("feedback");
+}
+
+_2526HW4AudioProcessor::~_2526HW4AudioProcessor()
+{
+}
+
+juce::AudioProcessorValueTreeState::ParameterLayout _2526HW4AudioProcessor::createParams()
+{
+    return {
+        std::make_unique<juce::AudioParameterFloat>(juce::ParameterID{"delay", 1}, "Delay length", 0.0, 2, 0.25),
+        std::make_unique<juce::AudioParameterFloat>(juce::ParameterID{"mix", 1}, "Mix", 0.0f, 1.0f, 0.5f),
+        std::make_unique<juce::AudioParameterFloat>(juce::ParameterID{"feedback", 1}, "Feedback", 0.0f, 0.95f, 0.3f),
+        std::make_unique<juce::AudioParameterFloat>(juce::ParameterID{"rate", 1}, "Rate", 0.05f, 5.0f, 0.5f),
+        std::make_unique<juce::AudioParameterFloat>(juce::ParameterID{"depth", 1}, "Depth", 0.0f, 0.5f, 0.1f), // seconds
+        std::make_unique<juce::AudioParameterBool>(juce::ParameterID{"modOn", 1}, "Modulation On", true)
+    };
 }
 
 _2526HW4AudioProcessor::~_2526HW4AudioProcessor()
@@ -123,9 +116,6 @@ void _2526HW4AudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlo
     int maxDelaySamples = (int)(maxDelaySec * sampleRate);
     delay.prepare(sampleRate, maxDelaySamples, getTotalNumInputChannels());
 
-    float frequency = 440.0f;
-    phaseIncrement = juce::MathConstants<float>::twoPi * frequency / (float)sampleRate;
-
 
 }
 
@@ -192,19 +182,6 @@ void _2526HW4AudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juc
     for (int channel = 0; channel < totalNumInputChannels; ++channel)
     {
         auto* channelData = buffer.getWritePointer (channel);
-
-        // ---- TEST AUDIO GENERATION ----
-//I used AI generation to create this test Audio for the Delay. I wanted to make sure it was working, and I was not sure how to 
-        //get it working with the input, and I could not figure out how to use/download the plugin from class. 
-        // I asked AI to create a Sine wave at 440Hz, for testing with a delay, and attached it below
-        for (int i = 0; i < numSamples; ++i)
-        {
-            channelData[i] = std::sin(phase) * 0.25f;
-
-            phase += phaseIncrement;
-            if (phase >= juce::MathConstants<float>::twoPi)
-                phase -= juce::MathConstants<float>::twoPi;
-        }
 
 
         for (int i = 0; i < numSamples; ++i)

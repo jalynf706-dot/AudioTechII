@@ -55,18 +55,19 @@ public:
     void setStateInformation (const void* data, int sizeInBytes) override;
 
 
+    juce::AudioProcessorValueTreeState apvts;
+
 private:
     //==============================================================================
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (_2526HW4AudioProcessor)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(_2526HW4AudioProcessor)
 
     Delay delay;
-    const int maxDelaySec = 5;
 
-    float phase = 0.0f;
-    float phaseIncrement = 0.0f;
+    double samplingRate;
+    int bufferSize;
 
-    juce::AudioProcessorValueTreeState apvts;
-    juce::AudioParameterFloat* delayTimeParam = nullptr;
-    juce::AudioParameterFloat* wetMixParam = nullptr;
-    juce::AudioParameterFloat* feedbackParam = nullptr;
+    const int maxDelaySec = 2;
+
+    juce::AudioProcessorValueTreeState::ParameterLayout createParams();
 };
+
